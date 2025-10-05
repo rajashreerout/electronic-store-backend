@@ -23,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import java.awt.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -31,20 +31,21 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@Api(value = "UserController", description = "REST APIs related to perform user operations !!")
+@Api(tags = "User Controller", description = "REST APIs related to perform user operations")
 //@CrossOrigin("*")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private FileService fileService;
+    private final UserService userService;
+    private final FileService fileService;
+    private final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Value("${user.profile.image.path}")
     private String imageUploadPath;
 
-    private Logger logger = LoggerFactory.getLogger(UserController.class);
+    public UserController(UserService userService, FileService fileService) {
+        this.userService = userService;
+        this.fileService = fileService;
+    }
 
     //create
     @PostMapping
@@ -122,7 +123,7 @@ public class UserController {
         String imageName = fileService.uploadFile(image, imageUploadPath);
         UserDto user = userService.getUserById(userId);
         user.setImageName(imageName);
-        UserDto userDto = userService.updateUser(user, userId);
+        userService.updateUser(user, userId);
         ImageResponse imageResponse = ImageResponse.builder().imageName(imageName).success(true).message("image is uploaded successfully ").status(HttpStatus.CREATED).build();
         return new ResponseEntity<>(imageResponse, HttpStatus.CREATED);
 

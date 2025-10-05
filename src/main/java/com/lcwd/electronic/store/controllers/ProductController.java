@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StreamUtils;
@@ -14,12 +16,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
 @RestController
 @RequestMapping("/products")
-//@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*")
 public class ProductController {
 
     @Autowired
@@ -109,17 +113,33 @@ public class ProductController {
     }
 
     //upload image
+    private Logger logger = LoggerFactory.getLogger(ProductController.class);
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/image/{productId}")
     public ResponseEntity<ImageResponse> uploadProductImage(
             @PathVariable String productId,
             @RequestParam("productImage") MultipartFile image
     ) throws IOException {
+        logger.info("Uploading image for product: {}", productId);
+        logger.info("Image path configured: {}", imagePath);
+        
         String fileName = fileService.uploadFile(image, imagePath);
+        logger.info("File uploaded successfully: {}", fileName);
+        
         ProductDto productDto = productService.get(productId);
         productDto.setProductImageName(fileName);
+        
         ProductDto updatedProduct = productService.update(productDto, productId);
-        ImageResponse response = ImageResponse.builder().imageName(updatedProduct.getProductImageName()).message("Product image is successfully uploaded !!").status(HttpStatus.CREATED).success(true).build();
+        logger.info("Product updated with image name: {}", updatedProduct.getProductImageName());
+        
+        ImageResponse response = ImageResponse.builder()
+            .imageName(updatedProduct.getProductImageName())
+            .message("Product image successfully uploaded!!")
+            .status(HttpStatus.CREATED)
+            .success(true)
+            .build();
+            
         return new ResponseEntity<>(response, HttpStatus.CREATED);
 
     }
@@ -129,10 +149,33 @@ public class ProductController {
 
     @GetMapping(value = "/image/{productId}")
     public void serveUserImage(@PathVariable String productId, HttpServletResponse response) throws IOException {
-        ProductDto productDto = productService.get(productId);
-        InputStream resource = fileService.getResource(imagePath, productDto.getProductImageName());
-        response.setContentType(MediaType.IMAGE_JPEG_VALUE);
-        StreamUtils.copy(resource, response.getOutputStream());
+        try {
+            ProductDto productDto = productService.get(productId);
+            String imageName = productDto.getProductImageName();
+            logger.info("Serving image for product: {}, image name: {}", productId, imageName);
+            
+            if (imageName == null || imageName.trim().isEmpty()) {
+                logger.warn("No image name found for product: {}", productId);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "No image found for product");
+                return;
+            }
+
+            String fullPath = imagePath + imageName;
+            logger.info("Full image path: {}", fullPath);
+
+            try {
+                InputStream resource = fileService.getResource(imagePath, imageName);
+                response.setContentType(MediaType.IMAGE_JPEG_VALUE);
+                StreamUtils.copy(resource, response.getOutputStream());
+                logger.info("Successfully served image for product: {}", productId);
+            } catch (FileNotFoundException e) {
+                logger.error("Image file not found for product: {}. Path: {}", productId, fullPath);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image file not found");
+            }
+        } catch (Exception e) {
+            logger.error("Error serving image for product: " + productId, e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error serving image");
+        }
 
     }
 

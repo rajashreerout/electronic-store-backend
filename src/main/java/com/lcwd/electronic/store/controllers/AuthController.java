@@ -13,7 +13,7 @@ import com.lcwd.electronic.store.exceptions.BadApiRequestException;
 import com.lcwd.electronic.store.security.JwtHelper;
 import com.lcwd.electronic.store.services.UserService;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

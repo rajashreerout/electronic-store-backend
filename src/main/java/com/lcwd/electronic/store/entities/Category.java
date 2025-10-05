@@ -1,14 +1,16 @@
 package com.lcwd.electronic.store.entities;
 
-
+import org.hibernate.annotations.GenericGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.GenerationType;
 
 @Getter
 @Setter
@@ -16,10 +18,14 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "categories")
-public class Category {
+public class Category implements Serializable {
 
     @Id
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Long id;
+
+    @Column(name = "category_id", unique = true)
     private String categoryId;
 
     @Column(name = "category_title", length = 60, nullable = false)

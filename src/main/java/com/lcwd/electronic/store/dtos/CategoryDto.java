@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.validation.constraints.Min;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
@@ -17,6 +15,7 @@ import javax.validation.constraints.Size;
 @NoArgsConstructor
 public class CategoryDto {
 
+    private Long id;
 
     private String categoryId;
 

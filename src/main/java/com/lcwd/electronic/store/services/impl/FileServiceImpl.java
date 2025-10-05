@@ -27,18 +27,24 @@ public class FileServiceImpl implements FileService {
         String filename = UUID.randomUUID().toString();
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String fileNameWithExtension = filename + extension;
-        String fullPathWithFileName = path  + fileNameWithExtension;
+        
+        // Create folder if it doesn't exist
+        File folder = new File(path);
+        if (!folder.exists()) {
+            logger.info("Creating directory: {}", path);
+            folder.mkdirs();
+        }
 
-        logger.info("full image path: {} ", fullPathWithFileName);
+        String fullPathWithFileName = path + File.separator + fileNameWithExtension;
+        logger.info("Full image path: {}", fullPathWithFileName);
+        
         if (extension.equalsIgnoreCase(".png") || extension.equalsIgnoreCase(".jpg") || extension.equalsIgnoreCase(".jpeg")) {
-
-            //file save
-            logger.info("file extension is {} ", extension);
-            File folder = new File(path);
-            if (!folder.exists()) {
-                //create the folder
-                folder.mkdirs();
-
+            logger.info("File extension is {}", extension);
+            
+            // Check if file already exists and delete it
+            File existingFile = new File(fullPathWithFileName);
+            if (existingFile.exists()) {
+                existingFile.delete();
             }
 
             //upload

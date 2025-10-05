@@ -16,5 +16,6 @@ public class CartDto {
     private String cartId;
     private Date createdAt;
     private UserDto user;
+    @Builder.Default
     private List<CartItemDto> items = new ArrayList<>();
 }

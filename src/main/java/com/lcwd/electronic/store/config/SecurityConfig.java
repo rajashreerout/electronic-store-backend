@@ -144,11 +144,14 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-//        configuration.setAllowedOrigins(Arrays.asList("https://domain2.com","http://localhost:4200"));
-        configuration.addAllowedOriginPattern("*");
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // React default port
         configuration.addAllowedHeader("Authorization");
         configuration.addAllowedHeader("Content-Type");
         configuration.addAllowedHeader("Accept");
+        configuration.addAllowedHeader("Upgrade");
+        configuration.addAllowedHeader("Connection");
+        configuration.addAllowedHeader("Sec-WebSocket-Key");
+        configuration.addAllowedHeader("Sec-WebSocket-Version");
         configuration.addAllowedMethod("GET");
         configuration.addAllowedMethod("POST");
         configuration.addAllowedMethod("DELETE");

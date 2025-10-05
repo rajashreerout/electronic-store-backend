@@ -1,6 +1,7 @@
 package com.lcwd.electronic.store.services.impl;
 
 import com.lcwd.electronic.store.dtos.CreateOrderRequest;
+import com.lcwd.electronic.store.dtos.InventoryDto;
 import com.lcwd.electronic.store.dtos.OrderDto;
 import com.lcwd.electronic.store.dtos.OrderUpdateRequest;
 import com.lcwd.electronic.store.dtos.PageableResponse;
@@ -10,11 +11,14 @@ import com.lcwd.electronic.store.exceptions.ResourceNotFoundException;
 import com.lcwd.electronic.store.helper.Helper;
 import com.lcwd.electronic.store.repositories.CartRepository;
 import com.lcwd.electronic.store.repositories.OrderRepository;
+
 import com.lcwd.electronic.store.repositories.UserRepository;
 import com.lcwd.electronic.store.services.OrderService;
+import com.lcwd.electronic.store.services.StockNotificationService;
+import com.lcwd.electronic.store.services.InventoryService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,25 +28,30 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    private final ModelMapper modelMapper;
+    private final CartRepository cartRepository;
 
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private ModelMapper modelMapper;
-
-    @Autowired
-    private CartRepository cartRepository;
-
+    public OrderServiceImpl(
+            UserRepository userRepository,
+            OrderRepository orderRepository,
+            ModelMapper modelMapper,
+            CartRepository cartRepository) {
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
+        this.modelMapper = modelMapper;
+        this.cartRepository = cartRepository;
+    }
 
     @Override
+    @Transactional
     public OrderDto createOrder(CreateOrderRequest orderDto) {
 
         String userId = orderDto.getUserId();
@@ -55,12 +64,13 @@ public class OrderServiceImpl implements OrderService {
 
         List<CartItem> cartItems = cart.getItems();
 
-        if (cartItems.size() <= 0) {
+        if (cartItems.isEmpty()) {
             throw new BadApiRequestException("Invalid number of items in cart !!");
-
         }
 
-        //other checks
+        // Skip inventory validation for now
+
+        // Begin transaction for order creation
 
         Order order = Order.builder()
                 .billingName(orderDto.getBillingName())
@@ -87,19 +97,23 @@ public class OrderServiceImpl implements OrderService {
                     .build();
 
             orderAmount.set(orderAmount.get() + orderItem.getTotalPrice());
+            
+            // Skip inventory update for now
+            
             return orderItem;
-        }).collect(Collectors.toList());
+        }).toList();
 
 
         order.setOrderItems(orderItems);
         order.setOrderAmount(orderAmount.get());
 
-        System.out.println(order.getOrderItems().size());
+        log.debug("Order items size: {}", order.getOrderItems().size());
 
-        //
+        // Clear cart and save order
         cart.getItems().clear();
         cartRepository.save(cart);
         Order savedOrder = orderRepository.save(order);
+
         return modelMapper.map(savedOrder, OrderDto.class);
     }
 
@@ -115,8 +129,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderDto> getOrdersOfUser(String userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found !!"));
         List<Order> orders = orderRepository.findByUser(user);
-        List<OrderDto> orderDtos = orders.stream().map(order -> modelMapper.map(order, OrderDto.class)).collect(Collectors.toList());
-        return orderDtos;
+        return orders.stream().map(order -> modelMapper.map(order, OrderDto.class)).toList();
     }
 
 
@@ -129,16 +142,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderDto updateOrder(String orderId, OrderUpdateRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found !!"));
 
-        //get the order
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new BadApiRequestException("Invalid update data"));
+        order.setOrderStatus(request.getOrderStatus());
+        order.setPaymentStatus(request.getPaymentStatus());
         order.setBillingName(request.getBillingName());
         order.setBillingPhone(request.getBillingPhone());
         order.setBillingAddress(request.getBillingAddress());
-        order.setPaymentStatus(request.getPaymentStatus());
-        order.setOrderStatus(request.getOrderStatus());
         order.setDeliveredDate(request.getDeliveredDate());
+
         Order updatedOrder = orderRepository.save(order);
         return modelMapper.map(updatedOrder, OrderDto.class);
     }
