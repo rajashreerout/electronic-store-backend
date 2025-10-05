@@ -88,6 +88,7 @@ public class UserServiceTest {
                 .about("This is updated user about details")
                 .gender("Male")
                 .imageName("xyz.png")
+                .password("password123")
                 .build();
 
         Mockito.when(userRepository.findById(Mockito.anyString())).thenReturn(Optional.of(user));

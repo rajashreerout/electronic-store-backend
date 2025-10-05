@@ -1,6 +1,6 @@
 package com.lcwd.electronic.store.services.impl;
 
-import com.lcwd.electronic.store.dtos.ApiResponseMessage;
+
 import com.lcwd.electronic.store.dtos.PageableResponse;
 import com.lcwd.electronic.store.dtos.UserDto;
 import com.lcwd.electronic.store.entities.Role;
@@ -13,7 +13,7 @@ import com.lcwd.electronic.store.services.UserService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,29 +30,33 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ModelMapper mapper;
+    private final UserRepository userRepository;
+    private final ModelMapper mapper;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
+    private final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Value("${user.profile.image.path}")
     private String imagePath;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @Value("${normal.role.id}")
     private String normalRoleId;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    private Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    public UserServiceImpl(
+            UserRepository userRepository,
+            ModelMapper mapper,
+            PasswordEncoder passwordEncoder,
+            RoleRepository roleRepository) {
+        this.userRepository = userRepository;
+        this.mapper = mapper;
+        this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
+    }
 
 
     @Override
@@ -66,12 +70,11 @@ public class UserServiceImpl implements UserService {
         // dto->entity
         User user = dtoToEntity(userDto);
         //fetch role of normal and set it to user
-        Role role = roleRepository.findById(normalRoleId).get();
+        Role role = roleRepository.findById(normalRoleId).orElseThrow(() -> new ResourceNotFoundException("Normal role not found"));
         user.getRoles().add(role);
         User savedUser = userRepository.save(user);
         //entity -> dto
-        UserDto newDto = entityToDto(savedUser);
-        return newDto;
+        return entityToDto(savedUser);
     }
 
 
@@ -89,8 +92,7 @@ public class UserServiceImpl implements UserService {
         user.setImageName(userDto.getImageName());
         //save data
         User updatedUser = userRepository.save(user);
-        UserDto updatedDto = entityToDto(updatedUser);
-        return updatedDto;
+        return entityToDto(updatedUser);
     }
 
     @Override
@@ -145,8 +147,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> searchUser(String keyword) {
         List<User> users = userRepository.findByNameContaining(keyword);
-        List<UserDto> dtoList = users.stream().map(user -> entityToDto(user)).collect(Collectors.toList());
-        return dtoList;
+        return users.stream().map(this::entityToDto).toList();
     }
 
     @Override

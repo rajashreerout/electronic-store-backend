@@ -8,6 +8,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.persistence.Column;
 import javax.persistence.Id;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
@@ -28,6 +29,11 @@ public class ProductDto {
     private boolean stock;
     private String productImageName;
     private CategoryDto category;
+    private List<ProductVariantDto> variants;
+    private List<ProductReviewDto> reviews;
+    private double averageRating;
+    private int totalReviews;
+    private boolean inWishlist;
 
 
 

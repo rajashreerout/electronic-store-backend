@@ -4,20 +4,22 @@ import com.lcwd.electronic.store.dtos.AddItemToCartRequest;
 import com.lcwd.electronic.store.dtos.ApiResponseMessage;
 import com.lcwd.electronic.store.dtos.CartDto;
 import com.lcwd.electronic.store.services.CartService;
-import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.persistence.PersistenceUnit;
+
 
 @RestController
 @RequestMapping("/carts")
 public class CartController {
 
-    @Autowired
-    private CartService cartService;
+    private final CartService cartService;
+    
+    public CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
 
     //add items to cart
     @PostMapping("/{userId}")
